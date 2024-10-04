@@ -7,31 +7,34 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Avatar from "../assets/pictures/avatar.jpg";
 import Spinner from "../features/ui/Spinner";
-import Toast, { notifySuccess } from "../features/ui/Toast";
+import Toast, { notifyError } from "../features/ui/Toast";
 import { logout } from "../features/users/userSlice";
+import getUserInfo from "../helpers/getUserInfo";
 function Profile() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  // Redux'taki user state'inden kullanıcının yüklenme durumunun alınması
   const { isLoading } = useSelector((state) => state.user);
-  const displayName = localStorage.getItem("displayName");
-  const email = localStorage.getItem("email");
-  const photo = localStorage.getItem("photo");
-  const id = localStorage.getItem("id");
-  const userType = localStorage.getItem("userType");
-  const groups = JSON.parse(localStorage.getItem("groups"));
-  const role = localStorage.getItem("role");
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  // Local Storage'dan kullanıcı bilgilerinin alınması
+  const { displayName, email, id, photo, role, userType, groups } =
+    getUserInfo();
 
+  // Çıkış işleminin gerçekleştirilmesi
   async function handleLogout() {
-    const response = await dispatch(logout());
+    const response = await dispatch(logout()); // Redux'taki logout fonksiyonuyla çıkış işleminin gerçekleştirilmesi
     if (response) {
-      navigate("/login");
+      navigate("/login"); // Çıkış işlemi başarılıysa kullanıcıyı giriş sayfasına yönlendir
+    } else {
+      notifyError("Logout failed");
     }
   }
+  // Eğer çıkış işlemi hala devam ediyorsa spinner göster
   if (isLoading) return <Spinner fullScreen={true} />;
 
   return (
     <>
       <Toast />
+      {/* Kullanıcı profil sayfasının tasarımı */}
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-full max-w-md flex flex-col place-self-center bg-white border border-gray-200 rounded-lg shadow-lg p-6">
           <div className="flex justify-center mt-4">

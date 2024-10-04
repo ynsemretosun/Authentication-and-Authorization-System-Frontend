@@ -6,6 +6,7 @@ import { resendOtp, verifyOtp } from "../features/users/userSlice";
 import ErrorPage from "./ErrorPage";
 
 function OtpVerification() {
+  // OTP state'inin tanımlanması ve sansürlenmiş mail adresinin alınması
   const bluredMail = localStorage.getItem("bluredMail");
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const inputRefs = useRef([]);
@@ -13,6 +14,7 @@ function OtpVerification() {
 
   const navigate = useNavigate();
 
+  // OTP inputlarındaki değişikliklerin takip edilmesi
   const handleChange = (e, index) => {
     const value = e.target.value;
     const newOtp = [...otp];
@@ -26,22 +28,24 @@ function OtpVerification() {
     }
   };
 
+  // OTP'nin doğrulanması
   async function handleSubmit() {
-    const otpValue = otp.join(""); // Tüm input değerlerini birleştirip tek bir string haline getiriyoruz
-    console.log(`Girilen OTP: ${otpValue}`);
+    const otpValue = otp.join(""); // Tüm input değerlerinin birleştirip tek bir string haline getirilmesi
 
-    const result = await dispatch(verifyOtp(otpValue));
+    const result = await dispatch(verifyOtp(otpValue)); // Redux'taki verifyOtp fonksiyonuyla OTP'nin doğrulanması
     const id = localStorage.getItem("id");
-    if (result) navigate("/profile/" + id);
+    if (result) navigate("/profile/" + id); // OTP doğrulama işlemi başarılıysa kullanıcı profil sayfasına yönlendir
   }
 
+  // OTP'nin yeniden gönderilmesi
   async function handleResendOtp() {
-    const result = await dispatch(resendOtp());
+    const result = await dispatch(resendOtp()); // Redux'taki resendOtp fonksiyonuyla OTP'nin yeniden gönderilmesi
     if (result) {
       notifySuccess("Otp resent successfully");
     }
   }
 
+  // Eğer mail adresi yoksa hata sayfasına yönlendir; bu durumda kullanıcı LDAP ile giriş yapmamış demektir.
   if (!bluredMail)
     return (
       <ErrorPage
@@ -56,6 +60,7 @@ function OtpVerification() {
   return (
     <>
       <Toast />
+      {/* OTP doğrulama sayfasının tasarımı */}
       <div className="relative flex min-h-screen flex-col justify-center overflow-hidden bg-gray-50 py-12">
         <div className="relative bg-white px-0 pt-10 pb-9 shadow-xl mx-auto w-full max-w-2xl rounded-2xl">
           <div className="mx-auto flex w-full max-w-xl flex-col space-y-16">

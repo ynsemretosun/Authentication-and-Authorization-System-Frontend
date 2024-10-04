@@ -7,24 +7,33 @@ import Spinner from "../features/ui/Spinner";
 import Toast, { notifyError } from "../features/ui/Toast";
 import { login } from "../features/users/userSlice";
 function Login() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("3Fzat05un1");
+  // Kullanıcı adı ve şifre state'lerinin tanımlanması
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  // Giriş işleminin gereçekleştirilmesi sırasında işlem durumunun elde edilmesi
   const { isLoading } = useSelector((state) => state.user);
+
+  // Giriş işleminin gerçekleştirilmesi
   async function handleSubmit(e) {
     e.preventDefault();
+    // Kullanıcı adı ve şifre alanlarının dolu olup olmadığının kontrolü
     if (username && password) {
-      const res = await dispatch(login(username, password));
+      const res = await dispatch(login(username, password)); // Redux'taki login fonksiyonunuyla giriş işlemi gerçekleştirilir
       if (res) {
-        navigate("/verifyOtp");
+        navigate("/verifyOtp"); // Giriş işlemi başarılıysa kullanıcıyı doğrulama sayfasına yönlendir
       } else {
-        notifyError();
+        notifyError(); // Giriş işlemi başarısızsa hata mesajı göster
       }
+    } else {
+      // Eğer kullanıcı adı ve şifre alanları boşsa hata mesajı gösterilir
+      notifyError("Please fill in all fields");
     }
   }
 
+  // Sosyal medya hesaplarıyla giriş işlemlerinin gerçekleştirilmesi
   function googleAut() {
     window.open("https://localhost:443/api/auth/google", "_self");
   }
@@ -35,8 +44,10 @@ function Login() {
     window.open("https://localhost:443/api/auth/facebook", "_self");
   }
 
+  // Kullanıcının daha önce giriş yapmış olup olmadığının kontrolü
   useEffect(
     function () {
+      // Eğer kullanıcı daha önce giriş yapmışsa kullanıcı profil sayfasına yönlendirilir
       const token = Cookies.get("token");
       const id = localStorage.getItem("id");
       if (token) {
@@ -48,10 +59,11 @@ function Login() {
   return (
     <>
       {isLoading ? (
-        <Spinner fullScreen={true} />
+        <Spinner fullScreen={true} /> // Eğer giriş işlemi hala devam ediyorsa spinner gösterilir
       ) : (
         <>
           <Toast />
+          {/* Giriş sayfasının tasarımı */}
           <main className=" m-auto flex min-h-screen max-h-full w-full flex-col items-center justify-center px-4 md:px-8 ">
             <Toast />
             <div>

@@ -1,34 +1,34 @@
 import { createSlice } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 import { notifyError, notifySuccess } from "../ui/Toast";
+import setUserInfo from "../../helpers/setUserInfo";
 const baseUrl = "https://127.0.0.1:443/api";
+// Kullanıcı ile ilgili işlemlerin yapıldığı slice'ın başlangıç durumu
 const initialState = {
   isLoading: false,
   user: {},
   data: "",
 };
 
+// Kullanıcı ile ilgili işlemlerin yapıldığı slice
 const userSlice = createSlice({
   name: "user",
   initialState,
+  // Kullanıcı giriş işlemi, çıkış işlemi ve kullanıcı bilgilerinin alınması işlemlerinin tanımlanması
   reducers: {
+    // otp doğrulama işlemi
     verifyOtp(state, action) {
       const user = action.payload.data.user;
-      console.log(user);
-      Cookies.set("token", action.payload.token);
-      localStorage.setItem("displayName", user.displayName);
-      localStorage.setItem("email", user.email);
-      localStorage.setItem("photo", user.photo);
-      localStorage.setItem("id", user.id);
-      localStorage.setItem("userType", user.userType);
       localStorage.setItem("groups", JSON.stringify(user.groups));
-      localStorage.setItem("role", user.role);
+      setUserInfo(user, action.payload.data.token);
       state.isLoading = !state.isLoading;
       state.user = user;
     },
+    // loading durumunun değiştirilmesi
     loading(state) {
       state.isLoading = !state.isLoading;
     },
+    // çıkış işlemi
     logout(state) {
       state.isLoading = !state.isLoading;
       state.user = {};
@@ -36,45 +36,44 @@ const userSlice = createSlice({
       Cookies.remove("connect.sid");
       localStorage.clear();
     },
+    // oauth ile giriş işlemi sonrası kullanıcı bilgilerinin alınması
     fetchUser(state, action) {
-      const user = action.payload.data.data.user;
-      Cookies.set("token", action.payload.data.token);
+      const user = action.payload.data.user;
+      setUserInfo(user, action.payload.data.token);
       state.isLoading = !state.isLoading;
       state.user = user;
-      localStorage.setItem("displayName", user.displayName);
-      localStorage.setItem("email", user.email);
-      localStorage.setItem("photo", user.photo);
-      localStorage.setItem("id", user.id);
-      localStorage.setItem("userType", user.userType);
-      localStorage.setItem("role", user.role);
     },
   },
 });
 
+// LDAP ile giriş işlemi
 export function login(username, password) {
   return async function (dispatch) {
     try {
-      dispatch({ type: "user/loading" });
-      const response = await fetch(`https://127.0.0.1:443/api/login`, {
+      dispatch({ type: "user/loading" }); // loading durumunun değiştirilmesi
+      // Kullanıcı adı ve şifrenin gönderilmesi
+      const response = await fetch(baseUrl + `/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+          "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify({ username: username, password: password }),
         credentials: "include",
       });
       const res = await response.json();
+      // Eğer giriş işlemi başarısızsa hata mesajı göster
       if (!response.ok) {
         dispatch({ type: "user/loading" });
         notifyError(res.message);
       } else {
+        // Eğer giriş işlemi başarılıysa kullanıcı bilgilerinin kaydedilmesi
         dispatch({ type: "user/loading" });
         localStorage.setItem("bluredMail", res.data.bluredMail);
         return true;
       }
     } catch {
-      // Handle the error here
+      // Eğer sunucu hatası oluşursa hata mesajı göster
       notifyError("Server Error");
       dispatch({ type: "user/loading" });
       return notifyError("Unexpected error");
@@ -82,11 +81,13 @@ export function login(username, password) {
   };
 }
 
+// OTP'nin doğrulanması
 export function verifyOtp(otp) {
   return async function (dispatch) {
     try {
       dispatch({ type: "user/loading" });
-      const response = await fetch(`https://127.0.0.1:443/api/verifyOtp`, {
+      // OTP'nin gönderilmesi
+      const response = await fetch(baseUrl + `/verifyOtp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -96,28 +97,30 @@ export function verifyOtp(otp) {
         credentials: "include",
       });
       const res = await response.json();
-      console.log(res);
+      // Eğer OTP doğrulama işlemi başarısızsa hata mesajı göster
       if (!response.ok) {
         dispatch({ type: "user/loading" });
         notifyError(res.message);
       } else {
+        // Eğer OTP doğrulama işlemi başarılıysa kullanıcı bilgilerinin kaydedilmesi
         dispatch({ type: "user/verifyOtp", payload: res });
         return true;
       }
     } catch {
-      // Handle the error here
+      // Eğer sunucu hatası oluşursa hata mesajı göster
       notifyError("Server Error");
       dispatch({ type: "user/loading" });
-      return notifyError("Unexpected error");
     }
   };
 }
 
+// Çıkış işlemi
 export function logout() {
   return async function (dispatch) {
     dispatch({ type: "user/loading" });
     try {
-      const response = await fetch("https://127.0.0.1:443/api/logout", {
+      // Çıkış işleminin gerçekleştirilmesi
+      const response = await fetch(baseUrl + "/logout", {
         method: "GET",
 
         headers: {
@@ -128,24 +131,28 @@ export function logout() {
         credentials: "include",
       });
       const data = await response.json();
+      // Eğer çıkış işlemi başarılıysa kullanıcı bilgilerinin silinmesi
       if (response.ok) {
         dispatch({ type: "user/logout" });
-        notifySuccess("Çıkış");
         return true;
       } else {
+        // Eğer çıkış işlemi başarısızsa hata mesajı göster
         notifyError(data.message);
         dispatch({ type: "user/loading" });
       }
     } catch {
+      // Eğer sunucu hatası oluşursa hata mesajı göster
       notifyError("Server Error");
     }
   };
 }
 
+// oauth ile giriş işlemi sonrası kullanıcı bilgilerinin alınması
 export function fetchUser() {
   return async function (dispatch) {
     dispatch({ type: "user/loading" });
     try {
+      // Kullanıcı bilgilerinin alınması
       const response = await fetch("https://localhost:443/api/profile", {
         method: "GET",
         credentials: "include", // Cookie'lerin gönderilmesini sağlar
@@ -155,24 +162,29 @@ export function fetchUser() {
           "Access-Control-Allow-Credentials": true,
         },
       });
+      // Eğer kullanıcı bilgileri alındıysa kullanıcı bilgilerinin kaydedilmesi
       if (response.ok) {
-        const data = await response.json();
-        dispatch({ type: "user/fetchUser", payload: { data } });
+        const res = await response.json();
+        dispatch({ type: "user/fetchUser", payload: res });
       } else {
+        // Eğer kullanıcı bilgileri alınamadıysa hata mesajı göster
         dispatch({ type: "user/loading" });
         notifyError("User data can not loaded from server!");
       }
     } catch {
+      // Eğer sunucu hatası oluşursa hata mesajı göster
       notifyError("Server Error");
     }
   };
 }
 
+// OTP'nin yeniden gönderilmesi işlemi
 export function resendOtp() {
   return async function (dispatch) {
     dispatch({ type: "user/loading" });
     try {
-      const response = await fetch("https://127.0.0.1:443/api/resendOtp", {
+      // OTP'nin yeniden gönderilmesi
+      const response = await fetch(baseUrl + "/resendOtp", {
         method: "GET",
         credentials: "include", // Cookie'lerin gönderilmesini sağlar
         headers: {
@@ -180,14 +192,16 @@ export function resendOtp() {
           "Access-Control-Allow-Credentials": true,
         },
       });
-      console.log(response);
+      // Eğer OTP kodu yeniden gönderildiyse bilgilendirme mesajı göster
       if (response.ok) {
         dispatch({ type: "user/loading" });
         notifySuccess("OTP Code regenerated sucesfuly!");
       } else {
+        // Eğer OTP kodu yeniden gönderilemediyse hata mesajı göster
         notifyError("OTP Code can not regenerated!");
       }
     } catch {
+      // Eğer sunucu hatası oluşursa hata mesajı göster
       notifyError("Server Error");
     }
   };
